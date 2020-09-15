@@ -24,14 +24,16 @@ class Kitti(BaseDataset):
 
     def __init__(self, config, is_train=True, image_loader=PILLoader, depth_loader=KittiDepthLoader):
         super().__init__(config, is_train, image_loader, depth_loader)
-        file_list = "./dp/datasets/lists/kitti_{}.list".format(self.split)
+        file_list = "./dp/datasets/lists/{}.txt".format(self.split)
         with open(file_list, "r") as f:
-            self.filenames = f.readlines()
+            self.filenames = [x.strip() for x in f.readlines()]
+        self.image_folder = os.path.join(self.root, 'image_2')
+        self.depth_folder = os.path.join(self.root, 'depth_2')
 
     def _parse_path(self, index):
-        image_path, depth_path = self.filenames[index].split()
-        image_path = os.path.join(self.root, image_path)
-        depth_path = os.path.join(self.root, depth_path)
+        sample_name = self.filenames[index]
+        image_path = os.path.join(self.image_folder, "{}.png".format(sample_name))
+        depth_path = os.path.join(self.depth_folder, "{}.png".format(sample_name))
         return image_path, depth_path
 
     def _tr_preprocess(self, image, depth):
@@ -92,26 +94,32 @@ class Kitti(BaseDataset):
 
         image_n = image.copy()
         image = image.resize((W, H), Image.BILINEAR)
+        breakpoint()
         crop_dh, crop_dw = int(crop_h/scale), int(crop_w/scale)
         # print("corp dh = {}, crop dw = {}".format(crop_dh, crop_dw))
         # depth = cv2.resize(depth, (W, H), cv2.INTER_LINEAR)
 
-        # center crop
-        x = (W - crop_w) // 2
-        y = (H - crop_h) // 2
-        dx = (dW - crop_dw) // 2
-        dy = (dH - crop_dh) // 2
+        image_patches = []
+        for i in range(4):
+            y0 = 0
+            y1 = H
+            x0 = int(0 + i*256)
+            x1 = w0 + crop_w
+            if w1 > W:
+                x0 = W - crop_w
+                x1 = W
 
-        image = image.crop((x, y, x + crop_w, y + crop_h))
-        depth = depth[dy:dy + crop_dh, dx:dx + crop_dw]
-        image_n = image_n.crop((dx, dy, dx + crop_dw, dy + crop_dh))
+            image = image.crop((x0, y0, x1, y1))
+            depth = depth[dy:dy + crop_dh, dx:dx + crop_dw]
+            image_n = image_n.crop((dx, dy, dx + crop_dw, dy + crop_dh))
 
-        # normalize
-        image_n = np.array(image_n).astype(np.float32)
-        image = np.asarray(image).astype(np.float32) / 255.0
-        image = nomalize(image, type=self.config['norm_type'])
-        image = image.transpose(2, 0, 1)
+            # normalize
+            image_n = np.array(image_n).astype(np.float32)
+            image = np.asarray(image).astype(np.float32) / 255.0
+            image = nomalize(image, type=self.config['norm_type'])
+            image = image.transpose(2, 0, 1)
 
         output_dict = {"image_n": image_n}
 
+        breakpoint()
         return image, depth, output_dict

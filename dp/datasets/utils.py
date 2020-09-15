@@ -53,4 +53,3 @@ def nomalize(image, type="mean"):
         image /= std
         return image
     raise NotImplementedError
-

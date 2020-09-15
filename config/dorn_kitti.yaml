@@ -16,14 +16,14 @@ model:
     pretrained: True
 data:
   name: "Kitti"
-  split: ["trainval", "selected_val"]
-  path: '/data/wangxin/KITTI'
+  split: ["train", "val"]
+  path: '/media/codyreading/Data/Kitti/object/training'
   tr_crop_size: [385, 513]
   te_crop_size: [385, 513]
   norm_type: "imagenet-norm"
 solver:
-  epochs: 14
-  batch_size: 4
+  epochs: 80
+  batch_size: 2
   step_decay: 1
   optimizer:
     name: 'SGD'
@@ -44,6 +44,6 @@ apex:
 vis_config:
   name: "dorn"
 snap:
-  path: "/data/snap_dir/monodepth"
+  path: "/home/codyreading/Projects/SupervisedDepthPrediction/output"
 
 

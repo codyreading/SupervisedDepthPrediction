@@ -1,5 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+from dp.version import __version__
+from dp.utils.pyt_ops import tensor2cuda
+from dp.utils.comm import synchronize
+from dp.models import _get_model
+from dp.core.optimizers import _get_optimizer
+from dp.core.lr_policys import _get_lr_policy
+from dp.utils.pyt_io import load_model
+from dp.utils.comm import reduce_tensor
+from torch.nn.utils import clip_grad_norm_
+import torch.backends.cudnn as cudnn
+import torch.distributed as dist
+import torch
+import inspect
+import random
+import numpy as np
+import time
+import os
 """
 @Time    : 2019-12-24 21:47
 @Author  : Wang Xin
@@ -12,25 +29,6 @@ logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
 
-import os
-import time
-
-import numpy as np
-import random
-import inspect
-
-import torch
-import torch.distributed as dist
-import torch.backends.cudnn as cudnn
-from torch.nn.utils import clip_grad_norm_
-from dp.utils.comm import reduce_tensor
-from dp.utils.pyt_io import load_model
-from dp.core.lr_policys import _get_lr_policy
-from dp.core.optimizers import _get_optimizer
-from dp.models import _get_model
-from dp.utils.comm import synchronize
-from dp.utils.pyt_ops import tensor2cuda
-from dp.version import __version__
 
 try:
     from apex import amp
@@ -147,7 +145,7 @@ class Solver(object):
         self.config = continue_state_object['config']
         self._build_environ()
         self.model = _get_model(self.config)
-        self.filtered_keys = [p.name for p in inspect.signature(self.model).parameters.values()]
+        self.filtered_keys = [p.name for p in inspect.signature(self.model.forward).parameters.values()]
         # model_params = filter(lambda p: p.requires_grad, self.model.parameters())
         model_params = []
         for params in self.model.optimizer_params():

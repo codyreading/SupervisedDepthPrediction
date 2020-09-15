@@ -64,10 +64,14 @@ def tensor2cuda(vars):
 @make_iterative_func
 def interpolate(vars, size=None, scale_factor=None, mode='nearest', align_corners=None):
     # print("!!!size:", size)
-    if not isinstance(vars, torch.Tensor) or vars.dim() < 3:
+    if not isinstance(vars, torch.Tensor) or vars.dim() < 2:
         return vars
-    if vars.dim()==3:
-        out = torch.unsqueeze(vars, dim=1)
+    if vars.dim() == 2:
+        out = torch.unsqueeze(vars, dim=0).unsqueeze(dim=0)
         out = F.interpolate(out, size, scale_factor, mode, align_corners)
-        return out.squeeze(dim=1)
+        return out.squeeze(dim=0).squeeze(dim=0)
+    if vars.dim() == 3:
+        out = torch.unsqueeze(vars, dim=0)
+        out = F.interpolate(out, size, scale_factor, mode, align_corners)
+        return out.squeeze(dim=0)
     return F.interpolate(vars, size, scale_factor, mode, align_corners)

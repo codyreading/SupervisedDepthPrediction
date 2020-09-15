@@ -30,7 +30,7 @@ def collate_fn(batch):
     elem = batch[0]
     elem_type = type(elem)
     if isinstance(elem, torch.Tensor):
-        #### start
+        # start
         h, w = elem.shape[-2:]
         if len(batch) > 0:
             for i in range(1, len(batch)):
@@ -39,7 +39,7 @@ def collate_fn(batch):
         for i in range(len(batch)):
             if batch[i].shape[-2:] != (h, w):
                 batch[i] = interpolate(batch[i], size=(h, w), mode="nearest")
-        #### end
+        # end
         out = None
         # if torch.utils.data.get_worker_info() is not None:
         #     # If we're in a background process, concatenate directly into a
@@ -76,7 +76,7 @@ def collate_fn(batch):
     raise TypeError(default_collate_err_msg_format.format(elem_type))
 
 
-def build_loader(config, is_train=True, world_size=1, distributed=False):
+def build_loader(config, is_train=True, world_size=1, distributed=False, num_workers=8):
     dataset = _get_dataset(config['data']['name'])(config=config["data"], is_train=is_train)
 
     sampler = None
@@ -90,7 +90,7 @@ def build_loader(config, is_train=True, world_size=1, distributed=False):
     if is_train:
         loader = DataLoader(dataset,
                             batch_size=batch_size,
-                            num_workers=10,
+                            num_workers=num_workers,
                             drop_last=False,
                             shuffle=(sampler is None),
                             pin_memory=False,
@@ -99,7 +99,7 @@ def build_loader(config, is_train=True, world_size=1, distributed=False):
     else:
         loader = DataLoader(dataset,
                             batch_size=1,
-                            num_workers=4,
+                            num_workers=num_workers,
                             drop_last=False,
                             shuffle=False,
                             pin_memory=False,

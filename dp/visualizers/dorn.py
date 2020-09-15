@@ -6,7 +6,9 @@
 @Email   : wangxin_buaa@163.com
 @File    : dorn.py
 """
+import os
 import numpy as np
+import cv2
 
 from dp.visualizers.utils import depth_to_color, error_to_color
 from dp.visualizers.base_visualizer import BaseVisualizer
@@ -40,6 +42,11 @@ class dorn_visualizer(BaseVisualizer):
         for i in range(len(fn)):
             image = image[i].astype(np.float)
             depth = tensor2numpy(out['target'][0][i])
+            output_dir, sample_idx = os.path.split(batch["target_path"][i])
+            output_dir = os.path.dirname(output_dir)
+            output_file = os.path.join(output_dir, "depth_pred", sample_idx)
+            depth_image = (depth * 255.0).astype(np.uint16)
+            cv2.imwrite(output_file, depth_image)
             # print("!! depth shape:", depth.shape)
 
             if has_gt:

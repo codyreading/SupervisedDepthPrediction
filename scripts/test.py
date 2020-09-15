@@ -72,12 +72,6 @@ else:
 if is_main_process:
     print_config(config)
 
-# dataset
-tr_loader, sampler, niter_per_epoch = build_loader(config,
-                                                   True,
-                                                   solver.world_size,
-                                                   solver.distributed,
-                                                   num_workers=args.workers)
 te_loader, _, niter_test = build_loader(config,
                                         False,
                                         solver.world_size,
@@ -92,61 +86,26 @@ te_loader, _, niter_test = build_loader(config,
 
 loss_meter = AverageMeter()
 metric = build_metrics(config)
+epoch = 66
 if is_main_process:
     writer = create_summary_writer(snap_dir)
     visualizer = build_visualizer(config, writer)
-
-for epoch in range(solver.epoch + 1, config['solver']['epochs'] + 1):
-    solver.before_epoch(epoch=epoch)
-    if solver.distributed:
-        sampler.set_epoch(epoch)
-
-    if is_main_process:
-        bar_format = '{desc}[{elapsed}<{remaining},{rate_fmt}]'
-        pbar = tqdm(range(niter_per_epoch), file=sys.stdout, bar_format=bar_format)
-    else:
-        pbar = range(niter_per_epoch)
-    loss_meter.reset()
-    train_iter = iter(tr_loader)
-    for idx in pbar:
-        t_start = time.time()
-        minibatch = train_iter.next()
-        filtered_kwargs = solver.parse_kwargs(minibatch)
-        # print(filtered_kwargs)
-        t_end = time.time()
-        io_time = t_end - t_start
-        t_start = time.time()
-        loss = solver.step(**filtered_kwargs)
-        t_end = time.time()
-        inf_time = t_end - t_start
-        loss_meter.update(loss)
-
-        if is_main_process:
-            print_str = '[Train] Epoch{}/{}'.format(epoch, config['solver']['epochs']) \
-                        + ' Iter{}/{}:'.format(idx + 1, niter_per_epoch) \
-                        + ' lr=%.8f' % solver.get_learning_rates()[0] \
-                        + ' losses=%.2f' % loss.item() \
-                        + '(%.2f)' % loss_meter.mean() \
-                        + ' IO:%.2f' % io_time \
-                        + ' Inf:%.2f' % inf_time
-            pbar.set_description(print_str, refresh=False)
-
     solver.after_epoch(epoch=epoch)
-    if is_main_process:
-        snap_name = os.path.join(snap_dir, 'epoch-{}.pth'.format(epoch))
-        solver.save_checkpoint(snap_name)
 
     # validation
     if is_main_process:
+        bar_format = '{desc}[{elapsed}<{remaining},{rate_fmt}]'
         pbar = tqdm(range(niter_test), file=sys.stdout, bar_format=bar_format)
     else:
         pbar = range(niter_test)
+
     metric.reset()
     test_iter = iter(te_loader)
     for idx in pbar:
         t_start = time.time()
         minibatch = test_iter.next()
         filtered_kwargs = solver.parse_kwargs(minibatch)
+
         # print(filtered_kwargs)
         t_end = time.time()
         io_time = t_end - t_start
