@@ -16,7 +16,7 @@ model:
     pretrained: True
 data:
   name: "Kitti"
-  split: ["train", "val"]
+  split: ["train", "trainval"]
   path: '/media/codyreading/Data/Kitti/object/training'
   tr_crop_size: [385, 513]
   te_crop_size: [385, 513]

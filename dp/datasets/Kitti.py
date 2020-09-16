@@ -82,6 +82,8 @@ class Kitti(BaseDataset):
         W, H = image.size
         dH, dW = depth.shape
 
+        W_img, H_img = W, H
+
         assert W == dW and H == dH, \
             "image shape should be same with depth, but image shape is {}, depth shape is {}".format((H, W), (dH, dW))
 
@@ -94,32 +96,56 @@ class Kitti(BaseDataset):
 
         image_n = image.copy()
         image = image.resize((W, H), Image.BILINEAR)
-        breakpoint()
         crop_dh, crop_dw = int(crop_h/scale), int(crop_w/scale)
         # print("corp dh = {}, crop dw = {}".format(crop_dh, crop_dw))
         # depth = cv2.resize(depth, (W, H), cv2.INTER_LINEAR)
 
-        image_patches = []
+        images = []
+        depths = []
+        image_ns = []
+        x0s = []
+        x1s = []
+        y0s = []
+        y1s = []
         for i in range(4):
             y0 = 0
             y1 = H
             x0 = int(0 + i*256)
-            x1 = w0 + crop_w
-            if w1 > W:
+            x1 = x0 + crop_w
+            if x1 > W:
                 x0 = W - crop_w
                 x1 = W
+            image_ = image.crop((x0, y0, x1, y1))
 
-            image = image.crop((x0, y0, x1, y1))
-            depth = depth[dy:dy + crop_dh, dx:dx + crop_dw]
-            image_n = image_n.crop((dx, dy, dx + crop_dw, dy + crop_dh))
+            x0s.append(x0)
+            x1s.append(x1)
+            y0s.append(y0)
+            y1s.append(y1)
+
+            y0 = 0
+            y1 = dH
+            x0 = int(0 + i*256)
+            x1 = x0 + crop_dw
+            if x1 > dW:
+                x0 = dW - crop_dw
+                x1 = dW
+
+            depth_ = depth[y0:y1, x0:x1]
+            image_n_ = image_n.crop((x0, y0, x1, y1))
 
             # normalize
-            image_n = np.array(image_n).astype(np.float32)
-            image = np.asarray(image).astype(np.float32) / 255.0
-            image = nomalize(image, type=self.config['norm_type'])
-            image = image.transpose(2, 0, 1)
+            image_n_ = np.array(image_n_).astype(np.float32)
+            image_ = np.asarray(image_).astype(np.float32) / 255.0
+            image_ = nomalize(image_, type=self.config['norm_type'])
+            image_ = image_.transpose(2, 0, 1)
 
-        output_dict = {"image_n": image_n}
+            images.append(image_)
+            depths.append(depth_)
+            image_ns.append(image_n_)
 
-        breakpoint()
+        image = np.stack(images)
+        depth = np.stack(depths)
+        image_n = np.stack(image_ns)
+        output_dict = {"image_n": image_n, "x0": x0s, "x1": x1s,
+                       "y0": y0s, "y1": y1s, "H": H, "W": W, "W_img": W_img, "H_img": H_img}
         return image, depth, output_dict

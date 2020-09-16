@@ -41,7 +41,22 @@ class dorn_visualizer(BaseVisualizer):
 
         for i in range(len(fn)):
             image = image[i].astype(np.float)
-            depth = tensor2numpy(out['target'][0][i])
+            depth = np.zeros((out['target'][0].shape[0], batch["H"], batch["W"]), dtype=np.float32)
+            depth[:] = np.nan
+            out_depth = tensor2numpy(out['target'][0])
+
+            for j in range(depth.shape[0]):
+                x0 = batch["x0"][j]
+                x1 = batch["x1"][j]
+                y0 = batch["y0"][j]
+                y1 = batch["y1"][j]
+                target_patch = depth[j, y0:y1, x0:x1]
+                patch = cv2.resize(out_depth[j], (target_patch.shape[1],
+                                                  target_patch.shape[0]), interpolation=cv2.INTER_LINEAR)
+
+                depth[j, y0:y1, x0:x1] = patch
+            depth = np.nanmean(depth, axis=0)
+            depth = cv2.resize(depth, (batch["W_img"], batch["H_img"]), interpolation=cv2.INTER_LINEAR)
             output_dir, sample_idx = os.path.split(batch["target_path"][i])
             output_dir = os.path.dirname(output_dir)
             output_file = os.path.join(output_dir, "depth_pred", sample_idx)
@@ -49,22 +64,22 @@ class dorn_visualizer(BaseVisualizer):
             cv2.imwrite(output_file, depth_image)
             # print("!! depth shape:", depth.shape)
 
-            if has_gt:
-                depth_gt = depth_gts[i]
+            # if has_gt:
+            #     depth_gt = depth_gts[i]
 
-                err = error_to_color(depth, depth_gt)
-                depth_gt = depth_to_color(depth_gt)
+            #     err = error_to_color(depth, depth_gt)
+            #     depth_gt = depth_to_color(depth_gt)
 
-            depth = depth_to_color(depth)
-            # print("pred:", depth.shape, " target:", depth_gt.shape)
-            group = np.concatenate((image, depth), axis=0)
+            # depth = depth_to_color(depth)
+            # # print("pred:", depth.shape, " target:", depth_gt.shape)
+            # group = np.concatenate((image, depth), axis=0)
 
-            if has_gt:
-                gt_group = np.concatenate((depth_gt, err), axis=0)
-                group = np.concatenate((group, gt_group), axis=1)
+            # if has_gt:
+            #     gt_group = np.concatenate((depth_gt, err), axis=0)
+            #     group = np.concatenate((group, gt_group), axis=1)
 
-            if self.writer is not None:
-                group = group.transpose((2, 0, 1)) / 255.0
-                group = group.astype(np.float32)
-                # print("group shape:", group.shape)
-                self.writer.add_image(fn[i] + "/image", group, epoch)
+            # if self.writer is not None:
+            #     group = group.transpose((2, 0, 1)) / 255.0
+            #     group = group.astype(np.float32)
+            #     # print("group shape:", group.shape)
+            #     self.writer.add_image(fn[i] + "/image", group, epoch)

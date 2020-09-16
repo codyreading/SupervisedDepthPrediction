@@ -26,12 +26,12 @@ default_collate_err_msg_format = (
 # reimplementation to make different target have same shape.
 def collate_fn(batch):
     r"""Puts each data field into a tensor with outer dimension batch size"""
-
     elem = batch[0]
     elem_type = type(elem)
     if isinstance(elem, torch.Tensor):
         # start
         h, w = elem.shape[-2:]
+
         if len(batch) > 0:
             for i in range(1, len(batch)):
                 th, tw = batch[i].shape[-2:]
@@ -47,7 +47,7 @@ def collate_fn(batch):
         #     numel = sum([x.numel() for x in batch])
         #     storage = elem.storage()._new_shared(numel)
         #     out = elem.new(storage)
-        return torch.stack(batch, 0, out=out)
+        return torch.cat(batch, 0, out=out)
     elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
             and elem_type.__name__ != 'string_':
         elem = batch[0]
@@ -103,6 +103,7 @@ def build_loader(config, is_train=True, world_size=1, distributed=False, num_wor
                             drop_last=False,
                             shuffle=False,
                             pin_memory=False,
-                            sampler=sampler)
+                            sampler=sampler,
+                            collate_fn=collate_fn)
 
     return loader, sampler, niters_per_epoch

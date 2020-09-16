@@ -52,7 +52,7 @@ if args.resumed:
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     continue_state_object = torch.load(args.resumed,
                                        map_location=torch.device("cpu"))
-    config = continue_state_object['config']
+    config = load_config(args.config)
     solver.init_from_checkpoint(continue_state_object=continue_state_object)
     if is_main_process:
         snap_dir = args.resumed[:-len(args.resumed.split('/')[-1])]
@@ -130,7 +130,7 @@ if is_main_process:
         """
         visualization for model output and feature maps.
         """
-        if is_main_process and idx % 10 == 0:
+        if is_main_process:
             visualizer.visualize(minibatch, pred, epoch=epoch)
 
     if is_main_process:
